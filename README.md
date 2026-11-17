@@ -24,12 +24,10 @@ Copy this repository into your agent's skills directory. No API keys or third-pa
 ### Codex
 
 ```bash
-git clone https://github.com/USERNAME/travel-advisor-skill.git
+git clone https://github.com/Asahi230035/travel-advisor-skill.git
 mkdir -p ~/.agents/skills/travel-advisor
 cp -R travel-advisor-skill/. ~/.agents/skills/travel-advisor/
 ```
-
-**Note:** Replace `USERNAME` with the repository owner's GitHub username when the repository is published. If you already downloaded the repository, skip `git clone`.
 
 For project-local installation, place it in `.agents/skills/travel-advisor/` instead. Other Agent Skills-compatible hosts use their respective skill directories, such as `.claude/skills/travel-advisor/` for Claude Code.
 
