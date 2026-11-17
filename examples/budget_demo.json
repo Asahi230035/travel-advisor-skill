@@ -1,0 +1,15 @@
+{
+  "scenario": "Fictional one-person trip budget; prices are not provider quotes",
+  "currency": "CNY",
+  "total_budget": 3000,
+  "fixed_costs": {"intercity_transport": 600},
+  "reserve_amount": 300,
+  "baseline_shares": {
+    "lodging": 0.35714285714285715,
+    "food": 0.2857142857142857,
+    "activities": 0.21428571428571427,
+    "local_transport": 0.14285714285714285
+  },
+  "priorities": {"lodging": "moderate"},
+  "minimum_shares": {"lodging": 0.20, "food": 0.20, "activities": 0.14, "local_transport": 0.09}
+}

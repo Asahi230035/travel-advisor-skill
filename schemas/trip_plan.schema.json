@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TripPlan",
+  "type": "object",
+  "required": ["plan_id", "version", "currency", "days", "validation"],
+  "properties": {
+    "plan_id": {"type": "string"},
+    "version": {"type": "integer", "minimum": 1},
+    "currency": {"type": "string", "minLength": 3, "maxLength": 3},
+    "cost_total": {"type": ["number", "null"], "minimum": 0},
+    "cost_basis": {"enum": ["verified_quote", "mixed", "estimated", "unknown"]},
+    "days": {
+      "type": "array",
+      "items": {"type": "object", "required": ["date", "events"], "properties": {
+        "date": {"type": "string", "format": "date"},
+        "events": {"type": "array", "items": {"type": "object", "required": ["event_id", "name", "status"], "properties": {
+          "event_id": {"type": "string"},
+          "name": {"type": "string"},
+          "place_id": {"type": ["string", "null"]},
+          "starts_at": {"type": ["string", "null"], "format": "date-time"},
+          "ends_at": {"type": ["string", "null"], "format": "date-time"},
+          "status": {"enum": ["suggested", "user_confirmed", "externally_verified"]},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}}
+        }, "additionalProperties": false}}
+      }, "additionalProperties": false}
+    },
+    "validation": {
+      "type": "array", "items": {"type": "object", "required": ["rule_id", "status"], "properties": {
+        "rule_id": {"type": "string"}, "status": {"enum": ["pass", "fail", "unknown", "not_applicable"]}, "reason": {"type": "string"}, "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }, "additionalProperties": false}
+    },
+    "changes_from_previous": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,75 @@
+{
+  "scenario": "Entirely fictional three-person group travel comparison; NOT real Chengdu data",
+  "people": ["foodie", "photographer", "low_pace"],
+  "default_weights": {
+    "interest": 0.25,
+    "budget": 0.20,
+    "time_efficiency": 0.15,
+    "comfort": 0.15,
+    "experience": 0.10,
+    "convenience": 0.10,
+    "crowd": 0.05
+  },
+  "person_weights": {
+    "photographer": {
+      "interest": 0.35,
+      "budget": 0.15,
+      "time_efficiency": 0.10,
+      "comfort": 0.10,
+      "experience": 0.15,
+      "convenience": 0.10,
+      "crowd": 0.05
+    },
+    "low_pace": {
+      "interest": 0.15,
+      "budget": 0.15,
+      "time_efficiency": 0.15,
+      "comfort": 0.30,
+      "experience": 0.05,
+      "convenience": 0.15,
+      "crowd": 0.05
+    }
+  },
+  "plans": [
+    {
+      "id": "A-busy-popular-route",
+      "validation": {"budget": "pass", "opening_hours": "pass", "transit": "pass"},
+      "evidence_coverage": 0.76,
+      "per_person": {
+        "foodie": {"interest": 95, "budget": 92, "time_efficiency": 70, "comfort": 45, "experience": 90, "convenience": 75, "crowd": 35},
+        "photographer": {"interest": 96, "budget": 90, "time_efficiency": 65, "comfort": 42, "experience": 95, "convenience": 70, "crowd": 30},
+        "low_pace": {"interest": 55, "budget": 90, "time_efficiency": 60, "comfort": 25, "experience": 60, "convenience": 65, "crowd": 20}
+      }
+    },
+    {
+      "id": "B-balanced-route",
+      "validation": {"budget": "pass", "opening_hours": "pass", "transit": "pass"},
+      "evidence_coverage": 0.93,
+      "per_person": {
+        "foodie": {"interest": 86, "budget": 86, "time_efficiency": 88, "comfort": 85, "experience": 82, "convenience": 88, "crowd": 75},
+        "photographer": {"interest": 85, "budget": 86, "time_efficiency": 88, "comfort": 85, "experience": 88, "convenience": 86, "crowd": 75},
+        "low_pace": {"interest": 80, "budget": 86, "time_efficiency": 86, "comfort": 95, "experience": 80, "convenience": 90, "crowd": 80}
+      }
+    },
+    {
+      "id": "C-high-rated-but-unverified",
+      "validation": {"budget": "pass", "opening_hours": "unknown", "transit": "pass"},
+      "evidence_coverage": 0.40,
+      "per_person": {
+        "foodie": {"interest": 95, "budget": 98, "time_efficiency": 95, "comfort": 93, "experience": 96, "convenience": 92, "crowd": 86},
+        "photographer": {"interest": 95, "budget": 98, "time_efficiency": 95, "comfort": 93, "experience": 96, "convenience": 92, "crowd": 86},
+        "low_pace": {"interest": 95, "budget": 98, "time_efficiency": 95, "comfort": 93, "experience": 96, "convenience": 92, "crowd": 86}
+      }
+    },
+    {
+      "id": "D-over-hard-budget",
+      "validation": {"budget": "fail", "opening_hours": "pass", "transit": "pass"},
+      "evidence_coverage": 0.98,
+      "per_person": {
+        "foodie": {"interest": 98, "budget": 95, "time_efficiency": 96, "comfort": 96, "experience": 98, "convenience": 96, "crowd": 94},
+        "photographer": {"interest": 98, "budget": 95, "time_efficiency": 96, "comfort": 96, "experience": 98, "convenience": 96, "crowd": 94},
+        "low_pace": {"interest": 98, "budget": 95, "time_efficiency": 96, "comfort": 96, "experience": 98, "convenience": 96, "crowd": 94}
+      }
+    }
+  ]
+}

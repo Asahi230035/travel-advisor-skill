@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TravelDecisionSessionV2",
+  "type": "object",
+  "required": [
+    "session_id",
+    "current_scope",
+    "version"
+  ],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "current_scope": {
+      "enum": [
+        "discover",
+        "verify",
+        "compare",
+        "budget",
+        "plan",
+        "audit",
+        "revise"
+      ]
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "last_task_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "known_fields": {
+      "type": "object"
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "asked_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "suggested_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "selected_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "locked_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "booked_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pending_verifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "version",
+          "reason"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string"
+          },
+          "changed_item_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

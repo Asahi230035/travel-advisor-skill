@@ -1,0 +1,7 @@
+{
+  "task": "preflight",
+  "target_task": "compare",
+  "kind": "hotel",
+  "context": {"live_price_required":true},
+  "options": [{"id":"a"},{"id":"b"}]
+}

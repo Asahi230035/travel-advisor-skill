@@ -1,0 +1,64 @@
+{
+  "task": "compare",
+  "kind": "hotel",
+  "context": {
+    "search_requested": false,
+    "live_price_required": false
+  },
+  "options": [
+    {
+      "id": "hotel-a",
+      "name": "模拟酒店 A",
+      "quote": {
+        "checkin": "2026-12-02",
+        "checkout": "2026-12-04",
+        "guests": 2,
+        "rooms": 1,
+        "room_type": "double",
+        "currency": "CNY",
+        "all_in_price": 720,
+        "price_basis": "all_in_total",
+        "taxes_included": true,
+        "mandatory_fees_included": true,
+        "breakfast": "none",
+        "cancellation": "free",
+        "membership_required": false,
+        "payment_terms": "pay_on_arrival"
+      },
+      "signals": {
+        "comfort": 70,
+        "convenience": 90
+      },
+      "evidence_status": "synthetic_demo"
+    },
+    {
+      "id": "hotel-b",
+      "name": "模拟酒店 B",
+      "quote": {
+        "checkin": "2026-12-02",
+        "checkout": "2026-12-04",
+        "guests": 2,
+        "rooms": 1,
+        "room_type": "double",
+        "currency": "CNY",
+        "all_in_price": 760,
+        "price_basis": "all_in_total",
+        "taxes_included": true,
+        "mandatory_fees_included": true,
+        "breakfast": "none",
+        "cancellation": "free",
+        "membership_required": false,
+        "payment_terms": "pay_on_arrival"
+      },
+      "signals": {
+        "comfort": 90,
+        "convenience": 80
+      },
+      "evidence_status": "synthetic_demo"
+    }
+  ],
+  "weights": {
+    "comfort": 0.6,
+    "convenience": 0.4
+  }
+}

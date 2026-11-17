@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TravelRequest",
+  "type": "object",
+  "required": [
+    "request_id"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "departure": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "destination": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "destination_timezone": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "start_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "end_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "party_size": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "budget": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "amount",
+            "currency",
+            "scope"
+          ],
+          "properties": {
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3
+            },
+            "scope": {
+              "enum": [
+                "group_total",
+                "per_person",
+                "per_person_per_day"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "hard_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "member_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "preferences": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": [
+          "member_id"
+        ],
+        "properties": {
+          "member_id": {
+            "type": "string"
+          },
+          "interests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pace": {
+            "enum": [
+              "slow",
+              "balanced",
+              "fast",
+              "unspecified"
+            ]
+          },
+          "weights": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "confirmed_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "description",
+          "confirmation_origin"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "confirmation_origin": {
+            "enum": [
+              "user_reported",
+              "externally_verified"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "preference_focus": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "area",
+          "intensity"
+        ],
+        "properties": {
+          "area": {
+            "enum": [
+              "lodging",
+              "food",
+              "culture",
+              "scenery",
+              "shopping",
+              "activities",
+              "transport",
+              "comfort",
+              "other"
+            ]
+          },
+          "intensity": {
+            "enum": [
+              "none",
+              "slight",
+              "moderate",
+              "strong",
+              "explicit"
+            ]
+          },
+          "origin": {
+            "enum": [
+              "user_explicit",
+              "inferred_provisional"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "intake_status": {
+      "type": "object",
+      "properties": {
+        "stage": {
+          "enum": [
+            "discovery",
+            "provisional",
+            "ready"
+          ]
+        },
+        "missing_blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_optional": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "asked_questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

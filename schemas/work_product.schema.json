@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TravelWorkProduct",
+  "type": "object",
+  "required": [
+    "task_id",
+    "scope",
+    "output_type",
+    "summary",
+    "status"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "discover",
+        "verify",
+        "compare",
+        "budget",
+        "plan",
+        "audit",
+        "revise"
+      ]
+    },
+    "output_type": {
+      "enum": [
+        "shortlist",
+        "fact_check",
+        "comparison",
+        "budget_scenarios",
+        "itinerary",
+        "audit_report",
+        "change_summary"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "provisional",
+        "blocked"
+      ]
+    },
+    "option_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unresolved_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requested_decisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_scope_requires_permission": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvidenceRecord",
+  "type": "object",
+  "required": ["evidence_id", "subject_id", "claim", "source_type", "retrieved_at", "verification_status"],
+  "properties": {
+    "evidence_id": {"type": "string"},
+    "subject_id": {"type": "string"},
+    "claim": {"type": "string"},
+    "attribute": {"type": ["string", "null"]},
+    "source_type": {"enum": ["official", "map", "booking_authorized", "weather", "user_supplied", "other"]},
+    "source_url": {"type": ["string", "null"], "format": "uri"},
+    "publisher": {"type": ["string", "null"]},
+    "published_at": {"type": ["string", "null"], "format": "date-time"},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "verification_status": {"enum": ["supported", "contradicted", "unverified", "stale"]},
+    "independent_group_id": {"type": ["string", "null"]},
+    "related_evidence_ids": {"type": "array", "items": {"type": "string"}},
+    "notes": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}

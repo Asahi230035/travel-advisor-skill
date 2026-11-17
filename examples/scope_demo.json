@@ -1,0 +1,12 @@
+{
+  "scope": "compare",
+  "proposed_outputs": [
+    "comparison"
+  ],
+  "proposed_operations": [
+    "research",
+    "normalize",
+    "evaluate",
+    "validate"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "task": "verify",
+  "as_of": "2026-11-17",
+  "claims": [
+    {"id":"claim-1", "text":"模拟景点每周一开放", "kind":"opening_hours", "evidence":[]}
+  ]
+}
