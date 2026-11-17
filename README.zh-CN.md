@@ -24,12 +24,10 @@
 ### Codex
 
 ```bash
-git clone https://github.com/USERNAME/travel-advisor-skill.git
+git clone https://github.com/Asahi230035/travel-advisor-skill.git
 mkdir -p ~/.agents/skills/travel-advisor
 cp -R travel-advisor-skill/. ~/.agents/skills/travel-advisor/
 ```
-
-**说明：** 仓库发布后，将 `USERNAME` 替换为实际 GitHub 用户名；如果已经下载仓库，可跳过 `git clone`。
 
 若仅在某个项目中使用，也可将目录放到 `.agents/skills/travel-advisor/`。其他兼容 Agent Skills 的工具使用各自的 Skill 目录，例如 Claude Code 的 `.claude/skills/travel-advisor/`。
 
