@@ -1,22 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "EvidenceRecord",
+  "title": "EvidenceRecord (v2.0)",
+  "description": "Evidence record evaluated by travel_core.evidence with dual-date freshness and depth gating.",
   "type": "object",
-  "required": ["evidence_id", "subject_id", "claim", "source_type", "retrieved_at", "verification_status"],
+  "required": ["stance", "retrieved_at", "verification_status"],
   "properties": {
-    "evidence_id": {"type": "string"},
-    "subject_id": {"type": "string"},
-    "claim": {"type": "string"},
-    "attribute": {"type": ["string", "null"]},
-    "source_type": {"enum": ["official", "map", "booking_authorized", "weather", "user_supplied", "other"]},
-    "source_url": {"type": ["string", "null"], "format": "uri"},
-    "publisher": {"type": ["string", "null"]},
-    "published_at": {"type": ["string", "null"], "format": "date-time"},
-    "retrieved_at": {"type": "string", "format": "date-time"},
-    "verification_status": {"enum": ["supported", "contradicted", "unverified", "stale"]},
-    "independent_group_id": {"type": ["string", "null"]},
-    "related_evidence_ids": {"type": "array", "items": {"type": "string"}},
+    "id": {"type": "string"},
+    "url": {"type": ["string", "null"], "format": "uri"},
+    "reference": {"type": ["string", "null"]},
+    "source_type": {"enum": ["official", "regulator", "operator", "map", "booking_authorized", "weather", "blog", "review", "user_supplied", "other"]},
+    "evidence_depth": {"enum": ["full_page", "official_api", "snippet", "summary"], "default": "full_page"},
+    "stance": {"enum": ["support", "contradict", "neutral"]},
+    "published_at": {"type": ["string", "null"]},
+    "effective_date": {"type": ["string", "null"]},
+    "retrieved_at": {"type": "string"},
+    "verified_current_on_page": {"type": "boolean"},
+    "verification_status": {"enum": ["checked", "unchecked", "unverified", "stale"]},
+    "independent_origin": {"type": ["string", "null"]},
     "notes": {"type": ["string", "null"]}
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

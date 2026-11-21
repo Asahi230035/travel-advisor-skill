@@ -1,47 +1,47 @@
-# Architecture
+# Architecture (v2.0)
 
-Travel Advisor Skill is a **workflow skill**, not a standalone app or service. The host AI agent owns language comprehension, browser/tool calls, user interaction, and (if supported) user-authorized state. The repo adds policy and deterministic helpers.
+Travel Advisor Skill is a **host-driven workflow skill**, not a standalone booking app or offline route generator. The host AI agent owns natural-language understanding, live web/map/weather tool calls, user interaction, and itinerary composition. This repository provides progressive-disclosure domain playbooks, strict freshness/authenticity guardrails, output templates, and optional stdlib-only deterministic calculators and exporters.
 
 ```text
-User request
+User request (natural language)
    │
    ▼
-SKILL.md → scope router → selective clarification
+SKILL.md (lean router + real-time freshness rules + hard boundaries)
    │
-   ├─ host search/browsing/maps/weather (if available)
-   │           └─ source records / normalized options
-   ├─ references/evidence-policy.md
-   ├─ references/decision-and-scoring.md
-   ├─ optional travel_core (offline deterministic checks)
-   └─ references/state-and-revision.md
+   ├─ Core policies (on demand)
+   │   ├─ references/task-routing-and-formats.md
+   │   ├─ references/clarification-and-state.md
+   │   └─ references/research-and-evidence.md
+   │
+   ├─ Domain expert playbooks (loaded only when matching the task)
+   │   ├─ references/itinerary-and-pacing.md
+   │   ├─ references/stays-and-transport.md
+   │   ├─ references/budget-and-tradeoffs.md
+   │   └─ references/traveler-profiles-and-crossborder.md
+   │
+   ├─ Host live tools (search / browser / maps / weather — zero setup)
+   │
+   └─ Optional deterministic toolkit (scripts/travel.py → travel_core/)
+       ├─ verify (dual-date freshness + snippet gate + origin dedup)
+       ├─ compare (quote parity + surcharges + dated FX)
+       ├─ budget & pass_check (3-tier budgets + transit pass break-even)
+       ├─ audit & revise (timeline/pace/interday audit + locked-item guard)
+       └─ export_ics & export_html (portable offline artifacts with badges)
    │
    ▼
-Decision-sized answer + explicit evidence/unknowns
+Decision-sized response (✅ / ≈ / ⚠️ / ❓) + compact Trip State (multi-turn)
 ```
 
 ## Layers
 
-1. **Interaction/guardrails:** smallest sufficient task, never unnecessary full itinerary; one high-impact question when needed.
-2. **Evidence:** fact claims and their origin, provenance and freshness; subjective experience separate from operational facts.
-3. **Decision support:** normalized quotes, balanced budgeting, individual/group scoring, caveats.
-4. **Planning & feasibility:** only the host agent composes an itinerary using accessible research, following [the workflow](../references/itinerary-planning.md). Optional scripts can check a supplied draft; unknown is not pass.
-5. **State:** user decisions vs provisional assumptions; local edits and re-check of affected items.
+1. **Real-time authenticity & scope layer (`SKILL.md` + `research-and-evidence.md`):** bans model-memory fallbacks for volatile travel facts; enforces dual-date freshness (`retrieved_at` + `published_at`), full-page inspection over search snippets, and four-state provenance badges.
+2. **Domain craft layer (`references/`):** progressive-disclosure playbooks for routing/pacing/calendar traps, stay zones & door-to-door transit, balanced budgets & flip conditions, and traveler-profile/cross-border adaptations.
+3. **Deterministic calculation & export layer (`travel_core/` + `scripts/travel.py`):** optional Python 3.10+ stdlib-only engine for exact arithmetic, strict auditing, non-destructive revision, and `.ics`/HTML export. Never performs network calls or offline itinerary generation.
+4. **Verification & evaluation layer (`tests/` + `evals/scenarios.md`):** automated unit/security/contract tests plus a 24-scenario behavioral evaluation rubric for live host agents.
 
 ## Runtime boundaries
 
-- `SKILL.md`: directly usable without Python, API keys or setup.
-- `references/`: load the minimum relevant policy at runtime.
-- `travel_core/` + `scripts/`: offline Python 3.10+ helpers on user/agent-provided JSON; **no live browsing**.
-- `schemas/`: illustrative contracts; agent need not ask end users to write JSON.
-- `examples/`: **synthetic** tests and demonstrations.
-
-## Trade-offs and non-goals
-
-Travel Advisor Skill intentionally delegates connectivity to the host; this simplifies installation but limits consistent coverage across agents. Travel providers' private rate/availability feeds, automated purchases, alerts and persistent preference stores are not included. The agent must not pretend otherwise. A quoted score is never a substitute for independently verified facts.
-
-## v1.2 decision checks
-
-- `travel_core/evidence.py` tracks authoritative support at the individual checked evidence-item level, not by combining attributes from separate records that share an origin. Its outputs still depend on externally supplied source labels.
-- `travel_core/compare.py` adds transport timing, route/transfer, change/refund and baggage conditions to comparisons. Offers with materially different conditions must be evaluated separately.
-- `travel_core/planning.py` checks stop order as supplied and declared transfer origins, plus explicitly provided interday anchors and transfers. Missing information is not proof of feasibility.
-- The host agent remains responsible for researching and composing actual itineraries. Offline scripts can inspect structured drafts but cannot fetch routes or verify live services.
+- `SKILL.md`: usable immediately without Python, API keys, env vars, or external packages.
+- `references/`: load only the 1–3 files relevant to the current turn.
+- `scripts/travel.py`: unified optional CLI accepting JSON files or `--stdin`, outputting `json`, bilingual `md`, `ics`, or `html`.
+- `plan` command: explicitly hands off to [references/itinerary-and-pacing.md](../references/itinerary-and-pacing.md) or audits a user/agent-supplied draft; **never generates itineraries offline**.

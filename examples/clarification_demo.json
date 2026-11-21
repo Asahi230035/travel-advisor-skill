@@ -1,8 +1,0 @@
-{
-  "max_questions": 1,
-  "candidates": [
-    {"key": "budget", "question": "这次大概多少预算？是人均还是全队总额？", "impact": 5, "blocking": true, "effort": 1},
-    {"key": "preferences", "question": "你更看重美食、住宿、景观还是人文？可选多个，也可以先按均衡。", "impact": 4, "defaultable": true, "effort": 2},
-    {"key": "hotel_brand", "question": "有偏好的酒店品牌吗？", "impact": 1, "defaultable": true, "effort": 2}
-  ]
-}

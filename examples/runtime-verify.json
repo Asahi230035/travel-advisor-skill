@@ -1,7 +1,50 @@
 {
   "task": "verify",
-  "as_of": "2026-11-17",
+  "as_of": "2026-11-21",
   "claims": [
-    {"id":"claim-1", "text":"模拟景点每周一开放", "kind":"opening_hours", "evidence":[]}
+    {
+      "id": "claim_museum_monday",
+      "text": "Example Museum is open on Mondays in November 2026 (Synthetic)",
+      "kind": "opening_hours",
+      "evidence": [
+        {
+          "id": "official_notice",
+          "url": "https://museum.example.org/hours-2026",
+          "source_type": "official",
+          "verification_status": "checked",
+          "evidence_depth": "full_page",
+          "stance": "contradict",
+          "published_at": "2026-11-01",
+          "retrieved_at": "2026-11-21"
+        },
+        {
+          "id": "old_blog_2023",
+          "url": "https://blog.example.com/city-guide-2023",
+          "source_type": "blog",
+          "verification_status": "checked",
+          "evidence_depth": "full_page",
+          "stance": "support",
+          "published_at": "2023-05-10",
+          "retrieved_at": "2026-11-21"
+        }
+      ]
+    },
+    {
+      "id": "claim_snippet_only",
+      "text": "Example Park requires 7-day advance ticket booking (Synthetic)",
+      "kind": "opening_hours",
+      "evidence": [
+        {
+          "id": "search_snippet",
+          "url": "https://park.example.org/tickets",
+          "source_type": "official",
+          "verification_status": "checked",
+          "evidence_depth": "snippet",
+          "stance": "support",
+          "published_at": "2026-11-10",
+          "retrieved_at": "2026-11-21"
+        }
+      ]
+    }
   ]
 }

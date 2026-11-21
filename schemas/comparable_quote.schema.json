@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Comparable hotel quote (runtime contract)",
-  "description": "A quote provided to travel_core.compare; the agent must independently check any real-world facts.",
+  "title": "Comparable hotel quote (v2.0 runtime contract)",
+  "description": "A quote provided to travel_core.compare; the host agent must independently live-check rates, surcharges, and FX.",
   "type": "object",
   "required": ["checkin", "checkout", "guests", "rooms", "room_type", "currency", "all_in_price", "price_basis", "taxes_included", "mandatory_fees_included", "breakfast", "cancellation", "membership_required", "payment_terms"],
   "properties": {
@@ -12,6 +12,8 @@
     "room_type": {"type": "string", "minLength": 1},
     "currency": {"type": "string", "minLength": 3, "maxLength": 3},
     "all_in_price": {"type": "number", "minimum": 0},
+    "mandatory_surcharges": {"type": ["object", "array"]},
+    "surcharges_excluded_from_all_in": {"type": "boolean"},
     "price_basis": {"const": "all_in_total"},
     "taxes_included": {"const": true},
     "mandatory_fees_included": {"const": true},
@@ -19,7 +21,7 @@
     "cancellation": {"type": "string", "minLength": 1},
     "membership_required": {"type": "boolean"},
     "payment_terms": {"type": "string", "minLength": 1},
-    "retrieved_at": {"type": ["string", "null"], "format": "date-time"},
+    "retrieved_at": {"type": ["string", "null"]},
     "source_url": {"type": ["string", "null"], "format": "uri"}
   },
   "additionalProperties": true

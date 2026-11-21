@@ -1,33 +1,34 @@
-# Evaluation guide
+# Evaluation Guide (v2.0)
 
-The unit suite validates deterministic components; it does **not** establish that an LLM follows the Skill reliably with live tools. Test both levels separately.
+Automated unit tests validate the deterministic Python helpers and repository contracts; they do **not** establish that an LLM follows the skill reliably with live tools. Evaluate both layers separately.
 
-## Mechanical regression
+## 1. Automated regression & contract tests
 
 ```bash
-python -m unittest discover -s tests -v
-python scripts/travel.py --capabilities
-python scripts/travel.py examples/runtime-preflight.json
-python scripts/travel.py examples/runtime-verify.json
-python scripts/travel.py examples/runtime-compare.json --format md
+python3 -m unittest discover -s tests -v
 ```
 
-## Additional v1.2 review targets
+Smoke-test the unified CLI:
 
-Review authority classification when a neutral checked official item shares a domain with an unchecked supporting item. Review transport-offer grouping with different departure times, transfers and baggage rights. For itinerary drafts, include out-of-order stops and missing cross-day travel anchors: neither should be silently treated as feasible. These are review targets, not claims that a host-level evaluation was performed.
+```bash
+python3 scripts/travel.py --capabilities
+python3 scripts/travel.py examples/runtime-compare.json --format md
+python3 scripts/travel.py examples/runtime-verify.json --format md
+python3 scripts/travel.py examples/runtime-budget.json --format md
+python3 scripts/travel.py examples/runtime-pass-check.json --format md
+python3 scripts/travel.py examples/runtime-export-trip.json --format html --out /tmp/trip.html
+python3 scripts/travel.py examples/runtime-export-trip.json --task export_ics --format ics --out /tmp/trip.ics
+```
 
-## Behavioral review
+## 2. Live host behavioral review
 
-Use [evals/scenarios.md](../evals/scenarios.md) with at least one supported host agent. For each scenario record:
-- Did the agent honor the requested scope?
-- Was each clarification necessary and non-repeated?
-- Did it distinguish current facts, opinions, assumptions and unknowns?
-- Were quotes normalized on dates/occupancy/currency/fees/breakfast/cancellation/membership/payment? Were non-equivalent offers excluded from a shared price ranking?
-- In a `plan` task, did the host actually consult appropriate current route/opening evidence and draft only the requested days, without an offline algorithm or fabricated route times?
-- Did the scoring avoid unjustified numeric precision?
-- Did it protect locked/booked plans and refrain from unauthorized actions?
-- Did it use only supported host tools and avoid fake connectivity?
+Run the 24 rubric-scored prompts in [evals/scenarios.md](../evals/scenarios.md) against a real host agent (comparing baseline vs Skill enabled) and inspect:
+- **Real-time freshness & authenticity**: Did the agent live-search volatile facts with current-year anchors instead of answering from memory? Did it distinguish `published_at` from `retrieved_at` and refuse to certify `✅` from truncated snippets?
+- **Four-state provenance**: Were `✅ / ≈ / ⚠️ / ❓` applied honestly with real sources and dates, and preserved in any exported files?
+- **Scope & clarification discipline**: Did it answer only the requested scope and ask at most one decisive question?
+- **Domain craft**: Did it catch Monday/holiday closures, door-to-door transit friction, hidden surcharges/FX, transit pass break-even math, Plan B resilience, and senior/group split-and-rejoin needs?
+- **Safety & ownership**: Were locked/booked items protected, prompt injections ignored, and booking/payment boundaries respected?
 
-## Data-quality and safety caveat
+## Synthetic data caveat
 
-Synthetic examples must remain labeled as synthetic. A unit test passing is not a real-time travel booking validation. Any claims about supported search sources should be verified against current host tooling; the instruction file does not grant tool access.
+All files in `examples/` are synthetic fixtures for testing and format demonstrations — never live travel quotes or confirmed schedules.

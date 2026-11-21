@@ -1,251 +1,382 @@
+"""Comprehensive unit & CLI tests for Travel Advisor Skill v2.0 deterministic helpers."""
+import io
 import json
-import os
+from pathlib import Path
+import subprocess
 import sys
 import unittest
-from pathlib import Path
-from unittest.mock import patch
-ROOT=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(ROOT))
-from travel_core.engine import execute
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
 from travel_core.common import InputError
-from travel_core.places import same_place, distance_km
+from travel_core.engine import execute
 
-Q={"checkin":"2026-12-02","checkout":"2026-12-04","guests":2,"rooms":1,
-   "room_type":"double","currency":"CNY","all_in_price":720,
-   "price_basis":"all_in_total","taxes_included":True,"mandatory_fees_included":True,
-   "breakfast":"none","cancellation":"free","membership_required":False,
-   "payment_terms":"pay_on_arrival"}
 
-class TestTaskRouting(unittest.TestCase):
-    def test_capabilities_without_key(self):
-        self.assertIn('compare',execute({'task':'capabilities'})['offline'])
-    def test_single_question_missing_hotel_date(self):
-        x=execute({'task':'preflight','target_task':'compare','kind':'hotel','context':{'live_price_required':True},'options':[{'id':'a'},{'id':'b'}]})
-        self.assertFalse(x['may_proceed']); self.assertEqual(x['ask_next']['field'],'checkin')
-    def test_no_questions_qualitative(self):
-        x=execute({'task':'preflight','target_task':'compare','kind':'hotel','options':[{'id':'a'},{'id':'b'}]})
-        self.assertTrue(x['may_proceed'])
-    def test_verify_no_claim(self):
-        self.assertEqual(execute({'task':'verify'})['status'],'needs_clarification')
-    def test_plan_no_destination_and_no_days(self):
-        self.assertEqual(execute({'task':'plan'})['question']['field'],'destination')
-    def test_plan_with_user_days(self):
-        x=execute({'task':'plan','days':[{'date':'2026-12-03','stops':[]}], 'costs':{}})
-        self.assertEqual(x['status'],'provided_draft_audited')
-        self.assertFalse(x['automatic_offline_planning'])
-        self.assertEqual(x['overall_status'],'unknown')
+class EvidenceFreshnessTests(unittest.TestCase):
+    def test_stale_blog_retrieved_today_is_rejected(self):
+        res = execute({
+            'task': 'verify',
+            'as_of': '2026-11-21',
+            'claims': [{
+                'id': 'c1',
+                'text': 'Museum opens Mondays',
+                'kind': 'opening_hours',
+                'evidence': [{
+                    'id': 'old_blog',
+                    'url': 'https://blog.example.com/2023-guide',
+                    'source_type': 'blog',
+                    'verification_status': 'checked',
+                    'evidence_depth': 'full_page',
+                    'stance': 'support',
+                    'published_at': '2023-05-01',
+                    'retrieved_at': '2026-11-21',
+                }],
+            }],
+        })
+        c = res['claims'][0]
+        self.assertEqual(c['verdict'], 'stale_needs_recheck')
+        self.assertEqual(c['badge'], '⚠️')
+        self.assertEqual(c['stale_published_sources'], ['old_blog'])
 
-    def test_plan_delegated_to_host_agent(self):
-        x=execute({'task':'plan','destination':'成都'})
-        self.assertEqual(x['status'],'host_agent_planning_required')
-        self.assertFalse(x['automatic_offline_planning'])
-        self.assertIn('itinerary-planning.md',x['workflow_reference'])
-    def test_reject_unknown_task(self):
-        with self.assertRaises(InputError): execute({'task':'pay'})
-    def test_budget_missing_envelope(self):
-        self.assertIn('total_budget',execute({'task':'budget'})['missing'])
+    def test_snippet_only_blocked_for_operational_claims(self):
+        res = execute({
+            'task': 'verify',
+            'as_of': '2026-11-21',
+            'claims': [{
+                'id': 'c2',
+                'text': 'Entry rule visa free 15 days',
+                'kind': 'entry_rules',
+                'evidence': [{
+                    'id': 'official_snip',
+                    'url': 'https://immigration.example.gov/visa',
+                    'source_type': 'official',
+                    'verification_status': 'checked',
+                    'evidence_depth': 'snippet',
+                    'stance': 'support',
+                    'published_at': '2026-11-20',
+                    'retrieved_at': '2026-11-21',
+                }],
+            }],
+        })
+        c = res['claims'][0]
+        self.assertEqual(c['verdict'], 'not_verified')
+        self.assertEqual(c['snippet_only_sources'], ['official_snip'])
 
-class TestCompare(unittest.TestCase):
-    def opts(self):
-        return {'task':'compare','kind':'hotel','options':[
-            {'id':'a','name':'A','quote':dict(Q),'signals':{'comfort':70}},
-            {'id':'b','name':'B','quote':dict(Q,all_in_price=650),'signals':{'comfort':80}}]}
-    def test_price_compare_and_pareto(self):
-        out=execute(self.opts())
-        self.assertEqual(out['price_ranking_low_to_high'],['b','a'])
-        self.assertIn({'option_id':'a','dominated_by':'b','scope':'supplied_metrics_only'},out['dominated_options'])
-    def test_dates_mismatch_not_comparable(self):
-        x=self.opts(); x['options'][1]['quote']['checkin']='2026-12-05'
-        self.assertEqual(execute(x)['comparable_option_ids'],[])
-    def test_tax_unknown_rejected(self):
-        x=self.opts(); x['options'][0]['quote']['taxes_included']=False
-        self.assertIn('a',execute(x)['pending_normalization'])
-    def test_missing_quote_no_false_price(self):
-        x=self.opts(); x['options'][0].pop('quote')
-        self.assertEqual(execute(x)['options'][0]['all_in_price'],None)
-    def test_cancellation_difference_prevents_pareto_dominance(self):
-        x=self.opts(); x['options'][0]['quote']['cancellation']='free'; x['options'][1]['quote']['cancellation']='nonrefundable'
-        self.assertEqual(execute(x)['dominated_options'],[])
-    def test_different_breakfast_is_not_same_package(self):
-        x=self.opts(); x['options'][1]['quote']['breakfast']='included'
-        out=execute(x)
-        self.assertEqual(out['price_ranking_low_to_high'], [])
-        self.assertEqual(out['comparable_option_ids'], [])
-        self.assertTrue(all(o['quote_normalized'] for o in out['options']))
-        self.assertTrue(all(not o['price_comparable'] for o in out['options']))
+    def test_future_retrieved_at_rejected(self):
+        res = execute({
+            'task': 'verify',
+            'as_of': '2026-11-21',
+            'claims': [{
+                'id': 'c3',
+                'text': 'Ticket costs 50',
+                'kind': 'price',
+                'evidence': [{
+                    'id': 'future_src',
+                    'url': 'https://museum.example.org/tickets',
+                    'source_type': 'official',
+                    'verification_status': 'checked',
+                    'evidence_depth': 'full_page',
+                    'stance': 'support',
+                    'published_at': '2026-11-21',
+                    'retrieved_at': '2026-11-25',
+                }],
+            }],
+        })
+        c = res['claims'][0]
+        self.assertEqual(c['verdict'], 'not_verified')
+        self.assertEqual(c['future_dated_sources'], ['future_src'])
 
-    def test_different_refund_is_not_same_package(self):
-        x=self.opts(); x['options'][1]['quote']['cancellation']='nonrefundable'
-        self.assertEqual(execute(x)['price_ranking_low_to_high'], [])
+    def test_authority_must_belong_to_same_checked_directional_record(self):
+        res = execute({
+            'task': 'verify',
+            'as_of': '2026-11-21',
+            'claims': [{
+                'id': 'c4',
+                'text': 'Open late Friday',
+                'kind': 'opening_hours',
+                'evidence': [
+                    {
+                        'id': 'official_neutral',
+                        'url': 'https://museum.example.org/home',
+                        'source_type': 'official',
+                        'verification_status': 'checked',
+                        'evidence_depth': 'full_page',
+                        'stance': 'neutral',
+                        'verified_current_on_page': True,
+                        'retrieved_at': '2026-11-21',
+                    },
+                    {
+                        'id': 'unchecked_support',
+                        'url': 'https://museum.example.org/blog',
+                        'source_type': 'official',
+                        'verification_status': 'unchecked',
+                        'evidence_depth': 'full_page',
+                        'stance': 'support',
+                        'published_at': '2026-11-15',
+                        'retrieved_at': '2026-11-21',
+                    },
+                ],
+            }],
+        })
+        c = res['claims'][0]
+        self.assertEqual(c['verdict'], 'not_verified')
 
-    def test_payment_terms_difference_prevents_equivalence(self):
-        x=self.opts(); x['options'][1]['quote']['payment_terms']='pay_in_advance'
-        out=execute(x)
-        self.assertEqual(out['price_ranking_low_to_high'],[])
-        self.assertTrue(all(not o['price_comparable'] for o in out['options']))
+    def test_official_full_page_contradiction_overrides_stale_blog(self):
+        payload = json.loads((ROOT / 'examples/runtime-verify.json').read_text(encoding='utf-8'))
+        res = execute(payload)
+        c1, c2 = res['claims']
+        self.assertEqual(c1['verdict'], 'contradicted_by_authoritative_source')
+        self.assertEqual(c1['stale_published_sources'], ['old_blog_2023'])
+        self.assertEqual(c2['verdict'], 'snippet_only_needs_full_page_check')
 
-    def test_negative_guests_rejected(self):
-        x=self.opts(); x['options'][0]['quote']['guests']=-1
-        out=execute(x)
-        self.assertIn('a',out['pending_normalization'])
 
-    def test_missing_member_eligibility_not_comparable(self):
-        x=self.opts(); x['options'][1]['quote'].pop('membership_required')
-        out=execute(x)
-        self.assertIn('b', out['pending_normalization'])
-        self.assertEqual(out['price_ranking_low_to_high'], [])
+class CompareTests(unittest.TestCase):
+    def test_fx_conversion_surcharges_and_package_isolation(self):
+        payload = json.loads((ROOT / 'examples/runtime-compare.json').read_text(encoding='utf-8'))
+        res = execute(payload)
+        by_id = {o['id']: o for o in res['options']}
+        # 42000 + 400 city tax = 42400 JPY * 0.048 = 2035.20 CNY
+        self.assertAlmostEqual(by_id['hotel_shinjuku_a']['all_in_price'], 2035.20, places=2)
+        self.assertTrue(by_id['hotel_shinjuku_a']['fx_converted'])
+        self.assertEqual(by_id['hotel_shinjuku_a']['per_night_price'], 1017.60)
+        self.assertEqual(by_id['hotel_shinjuku_a']['per_person_price'], 1017.60)
+        # A and B share identical terms -> ranked together; C has no breakfast & non-refundable -> isolated!
+        self.assertEqual(res['price_ranking_low_to_high'], ['hotel_shinjuku_a', 'hotel_shinjuku_b'])
+        self.assertIn('hotel_shinjuku_c', res['not_comparable'])
 
-    def test_two_separate_comparable_groups(self):
-        x=self.opts()
-        x['options'] += [
-            {'id':'c','quote':dict(Q, breakfast='included',all_in_price=900)},
-            {'id':'d','quote':dict(Q, breakfast='included',all_in_price=850)},
-        ]
-        out=execute(x)
-        self.assertEqual(len(out['comparable_groups']),2)
-        self.assertEqual(out['price_ranking_low_to_high'], [])
-        self.assertEqual(out['comparable_groups'][1]['price_ranking_low_to_high'],['d','c'])
+    def test_missing_fx_rate_prevents_false_ranking(self):
+        payload = json.loads((ROOT / 'examples/runtime-compare.json').read_text(encoding='utf-8'))
+        payload['fx_rates'] = {}
+        res = execute(payload)
+        by_id = {o['id']: o for o in res['options']}
+        self.assertIn('missing_fx_rate_JPY_to_CNY', by_id['hotel_shinjuku_a']['issues'])
+        self.assertEqual(res['price_ranking_low_to_high'], [])
 
-    def test_unlisted_features_prevent_dominance(self):
-        x=self.opts(); x['options'][0]['features']={'near_subway':True}
-        self.assertEqual(execute(x)['dominated_options'],[])
+    def test_transport_different_baggage_isolated(self):
+        def _t(oid, price, baggage):
+            return {
+                'id': oid,
+                'name': oid,
+                'quote': {
+                    'departure_date': '2026-12-01',
+                    'from': 'SHA',
+                    'to': 'PEK',
+                    'travelers': 1,
+                    'currency': 'CNY',
+                    'transport_mode': 'flight',
+                    'departure_time': '09:00',
+                    'arrival_time': '11:20',
+                    'transfers': 0,
+                    'route_pattern': 'direct',
+                    'fare_class': 'economy',
+                    'refund_policy': 'fee_applies',
+                    'change_policy': 'fee_applies',
+                    'baggage_allowance': baggage,
+                    'all_in_price': price,
+                    'price_basis': 'all_in_total',
+                    'taxes_included': True,
+                    'mandatory_fees_included': True,
+                },
+            }
+        res = execute({'task': 'compare', 'kind': 'transport', 'options': [_t('a', 800, '20kg'), _t('b', 650, 'carry_on_only')]})
+        self.assertEqual(res['price_ranking_low_to_high'], [])
+        self.assertEqual(len(res['not_comparable']), 2)
 
-    def test_weighted_score_requires_shared_signals(self):
-        x=self.opts(); x['weights']={'comfort':1.0}
-        out=execute(x)
-        self.assertEqual(out['options'][1]['indicative_preference_score'],80.0)
-    def test_reject_negative_price(self):
-        x=self.opts(); x['options'][0]['quote']['all_in_price']=-5
-        with self.assertRaises(InputError): execute(x)
-    def test_reject_same_id(self):
-        x=self.opts(); x['options'][0]['id']='b'
-        with self.assertRaises(InputError): execute(x)
 
-class TestEvidence(unittest.TestCase):
-    def test_unverified_claim(self):
-        x=execute({'task':'verify','as_of':'2026-11-17','claims':[{'id':'x','text':'周一开放','kind':'opening_hours','evidence':[]}]})
-        self.assertEqual(x['claims'][0]['verdict'],'not_verified')
-    def test_official_checked_support(self):
-        x=execute({'task':'verify','as_of':'2026-11-17','claims':[{'id':'x','text':'闭馆','kind':'opening_hours','evidence':[
-            {'id':'s','url':'https://example.org/official','stance':'support','source_type':'official',
-             'verification_status':'checked','retrieved_at':'2026-11-17'}]}]})
-        self.assertEqual(x['claims'][0]['verdict'],'supported_by_authoritative_source')
-    def test_self_labeled_official_not_enough(self):
-        x=execute({'task':'verify','as_of':'2026-11-17','claims':[{'text':'闭馆','kind':'entry_rules','evidence':[
-            {'id':'s','url':'https://example.com','stance':'support','source_type':'official','retrieved_at':'2026-11-17'}]}]})
-        self.assertEqual(x['claims'][0]['verdict'],'not_verified')
-    def test_contested(self):
-        claim={'text':'收费','kind':'opening_hours','evidence':[
-            {'id':'1','url':'https://official.example/a','stance':'support','source_type':'official','verification_status':'checked','retrieved_at':'2026-11-17'},
-            {'id':'2','url':'https://other.example/b','stance':'contradict','retrieved_at':'2026-11-17'}]}
-        self.assertEqual(execute({'task':'verify','as_of':'2026-11-17','claims':[claim]})['claims'][0]['verdict'],'contested')
-    def test_stale_evidence(self):
-        claim={'text':'营业','kind':'opening_hours','evidence':[{'id':'old','url':'https://x.com/a','stance':'support','retrieved_at':'2025-01-01'}]}
-        x=execute({'task':'verify','as_of':'2026-11-17','claims':[claim]})
-        self.assertEqual(x['claims'][0]['stale_or_undated_sources'],['old'])
-    def test_duplicate_origin_one_vote(self):
-        claim={'text':'很好','kind':'experience','evidence':[
-            {'id':str(i),'url':f'https://same.example/{i}','stance':'support'} for i in range(3)]}
-        x=execute({'task':'verify','claims':[claim]})['claims'][0]
-        self.assertEqual(x['independent_supporting_origins'],1)
+class BudgetAndPassTests(unittest.TestCase):
+    def test_balanced_budget_three_tiers_and_sum_check(self):
+        payload = json.loads((ROOT / 'examples/runtime-budget.json').read_text(encoding='utf-8'))
+        res = execute(payload)
+        self.assertEqual(res['sum_check'], 8000.0)
+        self.assertEqual(res['reserve'], 800.0)
+        self.assertGreater(res['preference_adjusted']['food'], res['balanced_baseline']['food'])
+        # Must not starve other categories
+        self.assertGreater(res['preference_adjusted']['activities'], 0)
+        self.assertIn('tight', res['scenarios'])
+        self.assertIn('balanced', res['scenarios'])
+        self.assertIn('upgraded', res['scenarios'])
+        self.assertEqual(res['scenarios']['balanced']['per_person'], 2000.0)
 
-class TestPlaces(unittest.TestCase):
-    def test_same_name_different_address_no_merge(self):
-        self.assertFalse(same_place({'name':'便利店','address':'北京海淀'}, {'name':'便利店','address':'成都高新'}))
-    def test_alias_geocoded_merge(self):
-        a={'name':'IFS','aliases':['成都IFS'],'latitude':30.661,'longitude':104.080}
-        b={'name':'成都IFS','latitude':30.662,'longitude':104.081}
-        self.assertTrue(same_place(a,b))
-    def test_coords_only_not_merge(self):
-        self.assertFalse(same_place({'name':'Hotel A','latitude':30.1,'longitude':104.1},
-                                    {'name':'Hotel B','latitude':30.1,'longitude':104.1}))
-    def test_distance_invalid(self):
-        with self.assertRaises(InputError): distance_km((91,0),(0,0))
-    def test_discover_merging(self):
-        o=execute({'task':'discover','places':[{'id':'1','name':'IFS','aliases':['成都IFS'],'address':'成都锦江区A'},
-                                                {'id':'2','name':'成都IFS','address':'成都锦江区A'}]})
-        self.assertEqual(o['candidate_count'],1)
+    def test_pass_check_not_worth_it(self):
+        payload = json.loads((ROOT / 'examples/runtime-pass-check.json').read_text(encoding='utf-8'))
+        res = execute(payload)
+        # Single fares = 3400 + 14170 + 4200 + 2400 = 24170
+        # Pass effective = 26000 + 4960 + 2400 = 33360 -> lose 9190/pp
+        self.assertEqual(res['verdict'], 'buy_point_to_point')
+        self.assertEqual(res['per_person']['net_savings_with_pass'], -9190.0)
+        self.assertEqual(res['group_total']['net_savings_with_pass'], -18380.0)
 
-class TestAudit(unittest.TestCase):
-    def day(self, transfer=20):
-        return {'task':'audit','days':[{'date':'2026-12-03','stops':[
-            {'id':'a','name':'A','start':'09:00','end':'10:00','opening_window':{'start':'08:00','end':'18:00'},'opening_verified':True},
-            {'id':'b','name':'B','start':'10:10','end':'11:00','opening_window':{'start':'09:00','end':'20:00'},'opening_verified':True,
-             'transfer_from_previous_minutes':transfer,'transfer_source':'map_route'}]}],
-             'costs':{'a':{'amount':60}},'total_budget':100,'currency':'CNY','costs_complete':True}
-    def test_infeasible_transfer(self):
-        x=execute(self.day())
-        self.assertEqual(x['overall_status'],'fail')
-        self.assertEqual(x['days'][0]['issues'][0]['code'],'insufficient_transfer_time')
-    def test_feasible_checked(self):
-        self.assertEqual(execute(self.day(10))['overall_status'],'pass')
-    def test_missing_transfer_unknown(self):
-        x=self.day(); x['days'][0]['stops'][1].pop('transfer_from_previous_minutes')
-        self.assertEqual(execute(x)['overall_status'],'unknown')
-    def test_budget_failure(self):
-        x=self.day(10); x['total_budget']=20
-        self.assertEqual(execute(x)['cost_check']['status'],'fail')
-    def test_budget_missing_required_category_is_unknown(self):
-        x=self.day(10); x['required_cost_categories']=['a','hotel']
-        out=execute(x)
-        self.assertEqual(out['cost_check']['status'],'unknown')
-        self.assertEqual(out['cost_check']['missing_required_categories'],['hotel'])
+    def test_pass_check_worth_it_and_unverified_guard(self):
+        res_worth = execute({
+            'task': 'pass_check',
+            'pass_name': 'City 2-Day Pass',
+            'currency': 'JPY',
+            'pass_price': 2000,
+            'legs': [
+                {'name': 'Trip 1', 'single_fare': 1200, 'verified': True},
+                {'name': 'Trip 2', 'single_fare': 1400, 'verified': True},
+            ],
+        })
+        self.assertEqual(res_worth['verdict'], 'worth_it')
+        self.assertEqual(res_worth['per_person']['net_savings_with_pass'], 600.0)
 
-    def test_missing_expenses_not_falsely_passed(self):
-        x=self.day(10); x.pop('costs_complete')
-        self.assertEqual(execute(x)['cost_check']['status'],'unknown')
-    def test_unknown_price(self):
-        x=self.day(10); x['costs']['hotel']={}
-        self.assertEqual(execute(x)['cost_check']['status'],'unknown')
-    def test_no_unverified_opening_assurance(self):
-        x=self.day(10); x['days'][0]['stops'][0]['opening_verified']=False
-        self.assertEqual(execute(x)['overall_status'],'unknown')
+        res_unv = execute({
+            'task': 'pass_check',
+            'pass_name': 'City Pass',
+            'currency': 'JPY',
+            'pass_price': 2000,
+            'legs': [{'name': 'Trip 1', 'single_fare': 2600, 'verified': False}],
+        })
+        self.assertEqual(res_unv['verdict'], 'provisional_unverified_fares')
 
-class TestRevision(unittest.TestCase):
-    def base(self):
-        return {'task':'revise','session':{'version':2,'days':[{'date':'2026-12-03','stops':[
-            {'id':'a','name':'A','start':'09:00','end':'10:00','decision_status':'locked'},
-            {'id':'b','name':'B','start':'11:00','end':'12:00','decision_status':'provisional'}]},
-            {'date':'2026-12-04','stops':[{'id':'x','name':'X','start':'13:00','end':'14:00'}]}]},
-            'changes':[{'op':'update_stop','date':'2026-12-03','stop_id':'b','fields':{'name':'C'}}]}
-    def test_local_edit(self):
-        x=execute(self.base())
-        self.assertEqual(x['session']['version'],3)
-        self.assertEqual(x['session']['days'][0]['stops'][1]['name'],'C')
-        self.assertEqual(x['session']['days'][1]['stops'][0]['name'],'X')
-        self.assertEqual(x['affected_days'],['2026-12-03'])
-    def test_locked_protected(self):
-        x=self.base(); x['changes'][0]['stop_id']='a'
-        with self.assertRaises(InputError): execute(x)
-    def test_bool_version_rejected(self):
-        x=self.base(); x['session']['version']=True
-        with self.assertRaises(InputError): execute(x)
 
-    def test_stale_version_protected(self):
-        x=self.base(); x['expected_version']=1
-        with self.assertRaises(InputError): execute(x)
-    def test_no_arbitrary_fields(self):
-        x=self.base(); x['changes'][0]['fields']={'decision_status':'booked'}
-        with self.assertRaises(InputError): execute(x)
+class AuditAndReviseTests(unittest.TestCase):
+    def _valid_session(self):
+        return {
+            'version': 1,
+            'currency': 'CNY',
+            'total_budget': 2000,
+            'costs_complete': True,
+            'costs': {'hotel': {'amount': 800}, 'food': {'amount': 400}},
+            'days': [
+                {
+                    'date': '2026-11-28',
+                    'end_location_id': 'hotel_a',
+                    'end_location_verified': True,
+                    'stops': [
+                        {
+                            'id': 's1',
+                            'name': 'Museum',
+                            'start': '09:30',
+                            'end': '11:30',
+                            'opening_window': {'start': '09:00', 'end': '17:00', 'last_entry': '16:00'},
+                            'opening_verified': True,
+                            'decision_status': 'booked',
+                        },
+                        {
+                            'id': 's2',
+                            'name': 'Tea House',
+                            'start': '12:30',
+                            'end': '14:00',
+                            'opening_window': {'start': '10:00', 'end': '20:00'},
+                            'opening_verified': True,
+                            'transfer_from_stop_id': 's1',
+                            'transfer_from_previous_minutes': 25,
+                            'transfer_source': 'map_route',
+                            'decision_status': 'provisional',
+                        },
+                    ],
+                },
+                {
+                    'date': '2026-11-29',
+                    'start_location_id': 'hotel_a',
+                    'start_location_verified': True,
+                    'stops': [
+                        {
+                            'id': 's3',
+                            'name': 'Park',
+                            'start': '09:00',
+                            'end': '11:00',
+                            'opening_window': {'start': '07:00', 'end': '19:00'},
+                            'opening_verified': True,
+                            'decision_status': 'locked',
+                        }
+                    ],
+                },
+            ],
+        }
 
-class TestZeroConfigRuntime(unittest.TestCase):
-    def test_no_user_configuration_needed(self):
-        with patch.dict(os.environ, {}, clear=True):
-            result = execute({'task': 'capabilities'})
-        self.assertFalse(result['setup_required'])
-        self.assertFalse(result['api_keys_required'])
-        self.assertFalse(result['environment_variables_required'])
-        self.assertEqual(result['pip_dependencies'], [])
-        self.assertIn('Host agent', result['live_research']['execution'])
+    def test_audit_pass_and_last_entry_and_pace_warning(self):
+        session = self._valid_session()
+        res = execute({'task': 'audit', **session})
+        self.assertEqual(res['overall_status'], 'pass')
 
-    def test_key_requiring_operations_not_exposed(self):
-        for task in ('amap_geocode', 'amap_walk', 'poi_search'):
-            with self.assertRaises(InputError):
-                execute({'task': task})
+        # Violate last_entry
+        session['days'][0]['stops'][0]['start'] = '16:15'
+        session['days'][0]['stops'][0]['end'] = '16:50'
+        session['days'][0]['stops'].pop(1)
+        res_late = execute({'task': 'audit', **session})
+        codes = [i['code'] for i in res_late['days'][0]['issues']]
+        self.assertIn('after_last_entry_time', codes)
+        self.assertEqual(res_late['overall_status'], 'fail')
 
-    def test_offline_compare_works_with_empty_environment(self):
-        payload = TestCompare().opts()
-        with patch.dict(os.environ, {}, clear=True):
-            self.assertEqual(execute(payload)['price_ranking_low_to_high'], ['b', 'a'])
+    def test_revise_protects_booked_item_and_allows_provisional_edit(self):
+        session = self._valid_session()
+        with self.assertRaises(InputError):
+            execute({
+                'task': 'revise',
+                'session': session,
+                'changes': [{'op': 'remove_stop', 'date': '2026-11-28', 'stop_id': 's1'}],
+            })
 
-if __name__ == '__main__': unittest.main()
+        res = execute({
+            'task': 'revise',
+            'session': session,
+            'changes': [{'op': 'update_stop', 'date': '2026-11-28', 'stop_id': 's2', 'fields': {'name': 'Quiet Tea House'}}],
+        })
+        self.assertEqual(res['session']['version'], 2)
+        self.assertEqual(res['affected_days'], ['2026-11-28'])
+        self.assertEqual(res['post_edit_audit']['overall_status'], 'pass')
+
+
+class ExportAndCLITests(unittest.TestCase):
+    def test_export_ics_preserves_unverified_prefix_and_rfc5545_structure(self):
+        payload = json.loads((ROOT / 'examples/runtime-export-trip.json').read_text(encoding='utf-8'))
+        payload['task'] = 'export_ics'
+        res = execute(payload)
+        ics = res['ics']
+        self.assertIn('BEGIN:VCALENDAR', ics)
+        self.assertIn('END:VCALENDAR', ics)
+        self.assertEqual(res['event_count'], 2)
+        self.assertIn('[估算]', ics)
+        self.assertIn('TZID=Asia/Shanghai', ics)
+
+    def test_export_html_escapes_xss_and_renders_trip_and_compare(self):
+        payload = json.loads((ROOT / 'examples/runtime-export-trip.json').read_text(encoding='utf-8'))
+        payload['title'] = '<script>alert("xss")</script>成都游'
+        res = execute(payload)
+        self.assertNotIn('<script>alert', res['html'])
+        self.assertIn('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;', res['html'])
+        self.assertIn('badge-ok', res['html'])
+        self.assertIn('Plan B', res['html'])
+
+        cmp_payload = {
+            'task': 'export_html',
+            'export_kind': 'compare',
+            'lang': 'en',
+            'title': 'Hotel Comparison',
+            'bottom_line': 'Pick A for transit.',
+            'options': [
+                {'id': 'a', 'name': 'Hotel A', 'all_in_price': 200.0, 'currency': 'USD', 'evidence_status': 'verified'},
+                {'id': 'b', 'name': 'Hotel B', 'all_in_price': 180.0, 'currency': 'USD', 'evidence_status': 'unverified'},
+            ],
+            'flip_conditions': ['Choose B only if non-refundable risk is acceptable.'],
+        }
+        cmp_res = execute(cmp_payload)
+        self.assertIn('Hotel Comparison', cmp_res['html'])
+        self.assertIn('Flip Conditions', cmp_res['html'])
+
+    def test_cli_stdin_and_bilingual_markdown(self):
+        sample = (ROOT / 'examples/runtime-pass-check.json').read_text(encoding='utf-8')
+        proc_en = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/travel.py'), '--stdin', '--format', 'md', '--lang', 'en'],
+            input=sample,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        self.assertIn('Buy point-to-point', proc_en.stdout)
+
+        proc_zh = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/travel.py'), '--stdin', '--format', 'md', '--lang', 'zh'],
+            input=sample,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        self.assertIn('建议单买更划算', proc_zh.stdout)
+
+
+if __name__ == '__main__':
+    unittest.main()

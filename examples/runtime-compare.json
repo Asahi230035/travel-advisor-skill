@@ -1,64 +1,84 @@
 {
   "task": "compare",
   "kind": "hotel",
-  "context": {
-    "search_requested": false,
-    "live_price_required": false
+  "target_currency": "CNY",
+  "fx_as_of": "2026-11-21",
+  "fx_rates": {
+    "JPY": 0.048
   },
   "options": [
     {
-      "id": "hotel-a",
-      "name": "模拟酒店 A",
+      "id": "hotel_shinjuku_a",
+      "name": "Example Shinjuku Hub Hotel (Synthetic)",
+      "evidence_status": "verified",
+      "retrieved_at": "2026-11-21",
+      "source": "synthetic-demo-official-rate",
       "quote": {
-        "checkin": "2026-12-02",
-        "checkout": "2026-12-04",
+        "checkin": "2026-12-04",
+        "checkout": "2026-12-06",
         "guests": 2,
         "rooms": 1,
-        "room_type": "double",
-        "currency": "CNY",
-        "all_in_price": 720,
+        "room_type": "standard_twin",
+        "currency": "JPY",
+        "all_in_price": 42000,
+        "mandatory_surcharges": {
+          "tokyo_accommodation_tax": 400
+        },
+        "surcharges_excluded_from_all_in": true,
         "price_basis": "all_in_total",
         "taxes_included": true,
         "mandatory_fees_included": true,
-        "breakfast": "none",
-        "cancellation": "free",
+        "breakfast": "included",
+        "cancellation": "free_until_48h",
         "membership_required": false,
-        "payment_terms": "pay_on_arrival"
-      },
-      "signals": {
-        "comfort": 70,
-        "convenience": 90
-      },
-      "evidence_status": "synthetic_demo"
+        "payment_terms": "pay_at_property"
+      }
     },
     {
-      "id": "hotel-b",
-      "name": "模拟酒店 B",
+      "id": "hotel_shinjuku_b",
+      "name": "Example Shinjuku Quiet Hotel (Synthetic)",
+      "evidence_status": "verified",
+      "retrieved_at": "2026-11-21",
+      "source": "synthetic-demo-ota-rate",
       "quote": {
-        "checkin": "2026-12-02",
-        "checkout": "2026-12-04",
+        "checkin": "2026-12-04",
+        "checkout": "2026-12-06",
         "guests": 2,
         "rooms": 1,
-        "room_type": "double",
+        "room_type": "standard_twin",
         "currency": "CNY",
-        "all_in_price": 760,
+        "all_in_price": 2180,
         "price_basis": "all_in_total",
         "taxes_included": true,
         "mandatory_fees_included": true,
-        "breakfast": "none",
-        "cancellation": "free",
+        "breakfast": "included",
+        "cancellation": "free_until_48h",
         "membership_required": false,
-        "payment_terms": "pay_on_arrival"
-      },
-      "signals": {
-        "comfort": 90,
-        "convenience": 80
-      },
-      "evidence_status": "synthetic_demo"
+        "payment_terms": "pay_at_property"
+      }
+    },
+    {
+      "id": "hotel_shinjuku_c",
+      "name": "Example Non-Refundable Saver (Synthetic)",
+      "evidence_status": "verified",
+      "retrieved_at": "2026-11-21",
+      "source": "synthetic-demo-ota-rate",
+      "quote": {
+        "checkin": "2026-12-04",
+        "checkout": "2026-12-06",
+        "guests": 2,
+        "rooms": 1,
+        "room_type": "standard_twin",
+        "currency": "CNY",
+        "all_in_price": 1750,
+        "price_basis": "all_in_total",
+        "taxes_included": true,
+        "mandatory_fees_included": true,
+        "breakfast": "excluded",
+        "cancellation": "non_refundable",
+        "membership_required": false,
+        "payment_terms": "prepaid"
+      }
     }
-  ],
-  "weights": {
-    "comfort": 0.6,
-    "convenience": 0.4
-  }
+  ]
 }

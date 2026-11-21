@@ -1,27 +1,26 @@
-# Travel Advisor · 智能旅行顾问
+# Travel Advisor · 智能旅行顾问 (v2.0)
 
-一个用于旅行信息检索、方案比较、预算分析和行程规划的 Agent Skill，支持多源核验与个性化建议。
+一个**证据优先、强调实时性与真实性**的全能自由行策划 Agent Skill —— 融合专业旅行规划方法论、多源查证战术、高信息密度决策模板，以及零配置纯标准库的可选计算与导出工具。
 
-[English](README.md) · [Skill 入口](SKILL.md) · [使用示例](examples/agent-use-cases.md) · [架构说明](docs/architecture.md) · [参与贡献](CONTRIBUTING.md)
+[English](README.md) · [Skill 入口](SKILL.md) · [使用示例](examples/agent-use-cases.md) · [架构说明](docs/architecture.md) · [更新日志](CHANGELOG.md)
 
-## 功能特性
+## v2.0 核心特性
 
-- **旅行目的地发现**：根据兴趣、预算和出行限制筛选目的地、景点、餐厅与活动。
-- **信息核验**：结合可靠来源核实攻略、开放时间和出行提示，识别过时或冲突的信息。
-- **多方案比较**：对齐日期、人数、交通时刻、换乘、行李、房型、税费、早餐、支付与退改条件，比较酒店、交通及活动选择。
-- **预算管理**：在必要支出和备用金的基础上，按照用户偏好合理倾斜，兼顾整体旅行体验。
-- **行程规划**：需要时由宿主 Agent 检索真实地点、交通及开放时间，再编排行程；不依赖本地离线规划算法。
-- **行程审查**：检查访问顺序、跨天交通衔接、时间冲突、预算缺口、预约要求及执行风险。
-- **个性化评价**：结合个人或多人偏好评估备选方案，并解释不同选择的取舍。
-- **局部调整**：修改酒店、景点或某一天的安排，尽量保留已确定的其他内容。
-
-既可以只解决一个局部问题，也可以规划完整旅行。Skill 会根据当前任务选择必要的能力，并仅在关键信息不足时主动反问。
+- **实时性与真实性硬保障**：价格、税费、汇率、营业与闭馆时间、临时休馆/施工公告、交通时刻、放票规则、签证入境政策一律要求在当前会话通过宿主实时工具核验，**绝不用模型记忆替代时变事实**；强制区分发布日期与检索日期，高风险运营规则拒绝仅凭搜索摘要下结论。
+- **四态溯源标签（`✅ / ≈ / ⚠️ / ❓`）**：所有关键结论与导出文件均清晰区分“本次实查已核实”“估算口径”“来源冲突或过期”和“待核实”，绝不把未查证猜测伪装成确定信息。
+- **按需加载的旅行专家方法论**：保持入口极简，按任务按需读取专业手册：
+  - **行程与节奏**：片区聚类防折返、到达/返程留白、体力波动曲线、星期闭馆与当地节假日排雷、预约抢票倒计时、同片区雨天/排队 Plan B。
+  - **选址与交通**：商圈枢纽半径与噪音/近期差评排雷、换酒店隐性损耗、高铁 vs 飞机门到门总耗时、交通 Pass/城市卡回本测算、隐性税费（城市税/度假村费/行李费）与多币种同口径比价。
+  - **预算与权衡**：固定项 + 应急备用金 + 三档情景（精打细算 / 均衡推荐 / 体验升级）、Top 2 成本杠杆、用“决策翻转条件”代替伪精确打分、多人公平性保护。
+  - **人群与跨境**：亲子、长辈无障碍、多人小团“核心共游 + 同片区分头窗口”、独行安全，以及官方签证/护照/支付/网络与按需行前清单。
+- **清晰直观的实用交付物**：统一精炼的对话对比表与日程表、多轮讨论防漂移的 `Trip State` 快照，以及按需生成的 **`.ics` 日历文件** 和 **离线单文件 HTML 行程单/对比卡**（方便手机查看和发给同行人）。
+- **克制边界与用户主导**：只做用户要求的部分，缺关键信息时一次最多问 1 个决定性问题，局部修改严守已锁定/已预订安排。
 
 ## 安装
 
-将本仓库放入 Agent 的 Skills 目录即可。Skill 本身无需 API Key，也不依赖第三方 Python 包。
+将本仓库放入 Agent 的 Skills 目录即可。**无需 API Key、无需环境变量、不依赖第三方 Python 包。**
 
-### Codex
+### Codex / Antigravity / 其他兼容 Agent Skills 的宿主
 
 ```bash
 git clone https://github.com/Asahi230035/travel-advisor-skill.git
@@ -29,78 +28,59 @@ mkdir -p ~/.agents/skills/travel-advisor
 cp -R travel-advisor-skill/. ~/.agents/skills/travel-advisor/
 ```
 
-若仅在某个项目中使用，也可将目录放到 `.agents/skills/travel-advisor/`。其他兼容 Agent Skills 的工具使用各自的 Skill 目录，例如 Claude Code 的 `.claude/skills/travel-advisor/`。
+若仅在某个项目中使用，可放到 `.agents/skills/travel-advisor/`；Claude Code 可放到 `.claude/skills/travel-advisor/`。
 
-入口文件为 [`SKILL.md`](SKILL.md)。安装后直接向 Agent 提出旅行问题即可；部分宿主也支持显式调用 `$travel-advisor`。
+入口文件为 [`SKILL.md`](SKILL.md)，安装后直接用自然语言提问即可。
 
 ## 使用示例
 
-**酒店比较**
-
-> 帮我对比新宿站附近的三家酒店，重点比较交通、房间面积和退改政策。
-
-**攻略核验**
-
-> 帮我核实这篇网上攻略的景点开放时间是否准确。
-
-**预算分配**
-
-> 四个人去成都玩，总预算 5000 元，比较重视住宿和美食，但整体体验也要均衡。
-
-**行程审查**
-
-> 看看我第二天的安排是不是太赶，其他几天先不要动。
-
-**完整规划**
-
-> 帮我们规划成都五日轻松游，重点是美食、人文和少量二次元相关地点。
+- **酒店比价与排雷**：*“帮我对比 12/4–12/6 新宿站附近三家酒店（2 成人），重点看安静度、机场接驳和含税总价。”*
+- **攻略实效核验**：*“这篇 2024 年攻略说博物馆周一开门且不用预约，帮我查证现在还准不准。”*
+- **交通 Pass 回本测算**：*“东京-京都-大阪 6 天，买 7 日 JR Pass 划不划算？”*
+- **预算与杠杆分析**：*“4 个人去成都 3 天，总预算 8000，重美食和住宿，给我几档方案。”*
+- **局部审查与修改**：*“看看第二天是不是太赶，把下午换成喝茶；第三天已经订票不要动。”*
+- **规划并导出**：*“帮我们 4 个人（含 1 位长辈）规划 3 天轻松游，定稿后导出 `.ics` 日历和一个手机能直接打开的 HTML 行程单。”*
 
 更多示例参见 [使用场景](examples/agent-use-cases.md)。
-
-## 工作流程
-
-1. **识别任务**：确定用户当前要解决的问题、预算、偏好和已确认的安排。
-2. **必要反问**：只有缺失信息可能改变结果时才继续询问。
-3. **按需检索**：使用宿主 Agent 已提供的网页、地图等工具获取相关信息。
-4. **比较与验证**：对齐候选条件，分析优缺点并检查硬约束。
-5. **输出结果**：呈现适合当前任务的结论、证据、风险与待确认事项。
-6. **局部更新**：用户修改要求时，只重新处理受影响的部分。
-
-Skill 会区分已核实事实、估算、主观体验和未知信息。实时价格和交通数据的可访问性取决于宿主已有工具与可获取来源。**行程由宿主 Agent 基于查得的资料编排，而不是由离线规划算法自动生成。**
 
 ## 项目结构
 
 ```text
 travel-advisor-skill/
-├── SKILL.md              # Skill 入口与执行规则
-├── references/           # 各类任务的具体规范
-├── travel_core/          # 可选的 Python 确定性计算模块
-├── scripts/              # 可选命令行入口
-├── schemas/              # 结构化数据定义
-├── examples/             # 使用示例与模拟数据
-├── evals/                # Agent 行为评估用例
-├── tests/                # 自动化回归测试
-└── docs/                 # 架构及开发文档
+├── SKILL.md                 # 精简入口、实时性红线与按需加载索引
+├── references/              # 核心规范与四大领域专家手册（7 份）
+├── travel_core/             # 可选纯标准库计算、核验、审计与导出引擎
+├── scripts/travel.py        # 统一可选 CLI（支持 --stdin、json/md/ics/html、中英切换）
+├── schemas/                 # 结构化数据参考定义
+├── examples/                # 模拟测试样例与真实对话范例
+├── evals/scenarios.md       # 24 个带 Rubric 评分标准的 Agent 行为评测集
+├── tests/                   # 自动化单元测试、安全转义与仓库契约测试
+└── docs/                    # 架构、设计、使用与评测文档
 ```
 
-Skill 优先利用 Agent 已有的工具能力；随附的 Python 计算脚本是可选的，且仅使用标准库。这些脚本可以校验已有行程，但不会离线生成行程。具体规则参见 [行程规划流程](references/itinerary-planning.md)。
+**边界说明**：实时查证与行程编排始终由宿主 Agent 调用自身可用工具完成；本地可选脚本**不联网、不预订、也绝不离线生成行程**。
 
 ## 开发与测试
 
-运行测试：
+运行全量自动化测试：
 
 ```bash
-python -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
 
-查看离线计算工具：
+体验统一离线命令行工具（示例均为模拟数据）：
 
 ```bash
-python scripts/travel.py --capabilities
-python scripts/travel.py examples/runtime-compare.json --format md
+python3 scripts/travel.py --capabilities
+python3 scripts/travel.py examples/runtime-compare.json --format md
+python3 scripts/travel.py examples/runtime-verify.json --format md
+python3 scripts/travel.py examples/runtime-budget.json --format md
+python3 scripts/travel.py examples/runtime-pass-check.json --format md
+python3 scripts/travel.py examples/runtime-export-trip.json --format html --out /tmp/trip.html
+python3 scripts/travel.py examples/runtime-export-trip.json --task export_ics --format ics --out /tmp/trip.ics
 ```
 
-仓库中的示例价格和评分均为模拟测试数据，不代表实时报价或实际预订结果。更多信息见 [测试说明](docs/evaluation.md) 和 [贡献指南](CONTRIBUTING.md)。
+更多说明见 [评测指南](docs/evaluation.md) 和 [使用说明](docs/usage.md)。
 
 ## 开源协议
 

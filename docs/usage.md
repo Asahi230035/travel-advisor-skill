@@ -1,49 +1,47 @@
-# Usage
+# Usage (v2.0)
 
-## Natural-language requests
+## Natural-language workflow (end users)
 
-Install the Skill in a supported agent's skills directory and ask a travel question normally. Hosts may trigger it automatically or allow explicit invocation. End users do not need to prepare JSON input.
+Install the skill in your agent's skills directory and ask travel questions in plain language. End users never need to write JSON or run scripts.
 
-### Itinerary planning
+- **Hotel / transport comparison**: *"Compare 3 hotels near Shinjuku Station for Dec 4–6 (2 adults), checking city taxes, breakfast, cancellation, and recent noise reviews."*
+- **Fact-check a travel post**: *"Verify whether the opening hours and ticket rules in this blog post are still valid for November 2026."*
+- **Transit pass check**: *"We're doing Tokyo–Kyoto–Osaka in 6 days. Is a 7-day JR Pass worth it?"*
+- **Balanced budget**: *"4 people, 3 days in Chengdu, total budget ¥8,000. Show tight/balanced/upgraded tiers and the biggest cost levers."*
+- **Itinerary planning**: *"Plan 3 relaxed days in Chengdu (Nov 28–30) for 4 people including a senior, with weekday closure checks, Plan B, and booking deadlines."*
+- **Local edit & export**: *"Change Day 2 afternoon only, keep Day 3 booked tickets untouched, and export an `.ics` calendar and offline HTML sheet."*
 
-> Plan three days in Hangzhou in December for two people with a total budget of ¥3,000. Prioritize nature and avoid an exhausting pace.
+## Optional unified CLI (agent-facing)
 
-The agent identifies the user's dates, budget basis and preferences, researches necessary opening and route conditions when possible, and composes a day-by-day proposal. Unverified travel times and prices remain labeled as estimates or unknowns.
-
-### Quote comparison
-
-> Compare these three train tickets, including departure times, transfers, baggage and refund policies, not only prices.
-
-Check whether the offers have equivalent conditions before producing any shared price ranking. Explain materially different options as trade-offs.
-
-### Claim verification
-
-> This travel post says the museum is free on Mondays. Check the official rule and the applicable date.
-
-Separate verifiable claims, cite accessed sources, and distinguish supported, contradicted, disputed and unknown findings.
-
-### Local itinerary revision
-
-> Replace only the afternoon on day two with a museum. Keep the morning and day three; day three's tickets are already booked.
-
-Modify only the authorized scope and recheck affected transfers, opening windows and costs. Ask before changing locked or booked arrangements.
-
-## Optional offline helpers
-
-The `scripts/travel.py` command accepts structured inputs for deterministic evidence, quote, budget and itinerary review. It does not browse or book anything. Hosts without Python execution can still follow the natural-language workflow.
+When Python 3.10+ execution is available, the host agent may invoke `scripts/travel.py` with either a JSON file or `--stdin`:
 
 ```bash
-python scripts/travel.py --capabilities
-python scripts/travel.py examples/runtime-verify.json
-python scripts/travel.py examples/runtime-compare.json --format md
+# Inspect zero-config offline boundaries
+python3 scripts/travel.py --capabilities
+
+# Like-for-like quote comparison (with FX & surcharges)
+python3 scripts/travel.py examples/runtime-compare.json --format md
+
+# Dual-date freshness & snippet-gate evidence audit
+python3 scripts/travel.py examples/runtime-verify.json --format md
+
+# Balanced 3-tier budget allocation
+python3 scripts/travel.py examples/runtime-budget.json --format md
+
+# Transit pass break-even math
+python3 scripts/travel.py examples/runtime-pass-check.json --format md
+
+# Export structured trip to single-file offline HTML or RFC 5545 .ics calendar
+python3 scripts/travel.py examples/runtime-export-trip.json --format html --out /tmp/trip.html
+python3 scripts/travel.py examples/runtime-export-trip.json --task export_ics --format ics --out /tmp/trip.ics
+
+# Pipe JSON directly without creating temporary files
+cat examples/runtime-pass-check.json | python3 scripts/travel.py --stdin --format md --lang en
 ```
 
-## Structured multi-day itinerary review
+Supported `--format` values: `json` (default), `md`, `ics`, `html`.  
+Supported `--lang` values: `auto` (default), `zh`, `en`.
 
-When an audit is requested and the host can prepare structured input, keep `days[].stops[]` in the actual visit order. `transfer_from_previous_minutes` refers to the preceding stop; `transfer_from_stop_id` can identify it explicitly. For consecutive days, `days[].end_location_id` and the following `days[].start_location_id` document the overnight location handoff.
+## Multi-day itinerary audit notes
 
-If different locations require a transfer, `days[].interday_transfer` can record `from_location_id`, `to_location_id`, `depart_at`, `arrive_at`, `source` and `verified`. Timestamps must include an ISO 8601 UTC offset. Supplying a field is not independent evidence that a route exists or operates. Missing source, anchors or travel information should remain `unknown`.
-
-## Outputs
-
-Most users should receive a concise decision-oriented response: alternatives and trade-offs, relevant sources, daily itinerary where requested, approximate costs, risks and outstanding confirmations. Internal JSON fields are not required in the end-user answer.
+When auditing a structured draft (`--task audit`), preserve `days[].stops[]` in chronological visit order. Provide `opening_window` (with optional `last_entry`), `opening_verified`, `transfer_from_previous_minutes`, `transfer_source`, and cross-day `end_location_id` / `start_location_id` / `interday_transfer` (with timezone-aware ISO 8601 timestamps). Missing values stay `unknown` — never assumed valid.

@@ -1,37 +1,41 @@
-# 真实交互示例（用户只需用自然语言）
+# Real-world Agent Use Cases (Natural Language Only)
 
-## 1. 酒店比较
-用户：成都春熙路附近找三家差不多价位的酒店，优先安静、交通方便。
-- 若没有日期与入住人数，但只需地区/类型研究，先给已查证的候选或可行区域，说明实时价格须按日期核实。
-- 若用户要求比较**实际成交价**，仅询问影响报价的最关键缺失信息（如入住和退房日期），一次一问。
-- 自动检索；同条件比较通勤、取消、噪音、位置、实际价；不同条件不硬排。
-- 只输出酒店，不擅自安排行程。
+End users speak in plain language. The host agent applies `SKILL.md`, loads only the relevant `references/` playbook, runs live verification with its existing tools, and uses `scripts/travel.py` optionally for exact math or exports.
 
-## 2. 攻略信息核验
-用户：这篇攻略说景点周一开门，你帮我核实一下。
-- 分离主张：景点位置/周一开放/门票价格。
-- 周一开放查官方最新页面；不可访问时说“未核实”。
-- 不把点赞、收藏或多个转载当成开放时间证明。
+## 1. Hotel comparison with hidden fees & review screening (`compare`)
+**User**: "Compare 3 hotels near Shinjuku Station for Dec 4–6 (2 adults). Prioritize quiet rooms and airport access."
+- **Behavior**:
+  - Live-checks current rates for Dec 4–6 (2 adults, 1 room), checking taxes, Tokyo accommodation tax, breakfast, and cancellation rules.
+  - Screens recent 6–12 month reviews for noise, renovation/construction, and elevator/room-size complaints.
+  - Excludes non-refundable room-only quotes from a shared price ranking with breakfast-included refundable quotes.
+  - Delivers: 1-line bottom line → like-for-like table with `✅/≈/❓` badges → flip conditions → sources & retrieval date. Does **not** draft an itinerary.
 
-## 3. 均衡预算
-用户：四个人去三天，预算 4000，偏向美食，但住宿别太差。
-- 先判断交通起点是否对预算有实质影响；如必须，问一项关键问题。
-- 交通基础费和备用金先覆盖，饮食适度增加，不因“偏向美食”倾尽预算。
-- 输出均衡和美食偏重两种预算情景，标注估算与价格待核实。
+## 2. Fact-checking a travel blog post (`verify`)
+**User**: "This 2024 guide says the museum opens on Mondays and tickets are walk-in only. Can you verify?"
+- **Behavior**:
+  - Splits claims (Monday hours vs ticketing rule).
+  - Queries the museum's official site (in local language for international venues) anchored to the travel year/month, opening the actual page rather than relying on a search snippet.
+  - Flags stale blog content (`⚠️`) even if retrieved today; marks gated/inaccessible sites `❓`.
 
-## 4. 局部审核与修改
-用户：第二天太赶了，帮我看看，不动第一天和第三天。
-- 只审查第二天及必须联动的信息；保留已锁定内容。
-- 如果缺少具体交通时间，标注“转场时间待核实”而不是给出虚构分钟数。
-- 提供最小改动版，说明变化点；不生成一篇新攻略。
+## 3. Transit pass break-even check (`compare` / `pass_check`)
+**User**: "We're visiting Tokyo, Kyoto, and Osaka in 6 days. Is the 7-day JR Pass worth buying now?"
+- **Behavior**:
+  - Live-checks current JR Pass price and point-to-point Shinkansen fares (noting Nozomi/Mizuho surcharges and non-JR metro legs).
+  - Computes break-even savings (optionally via `scripts/travel.py --task pass_check`), gives a direct verdict, and lists exact caveats.
 
-## 5. 多人偏好协调
-用户：四个人，一个爱博物馆，一个想购物，两个怕累，帮我们比较两套行程。
-- 优先比较方案个体满意度及最低满意度；硬性无障碍等限制先满足。
-- 若只有粗略偏好，给可解释的定性比较，不制造 91.7 等伪精确分数。
-- 给出如何平衡的建议，让用户决定。
+## 4. Balanced budget with levers (`budget`)
+**User**: "4 people, 3 days in Chengdu, total budget ¥8,000. We care about food and decent hotels."
+- **Behavior**:
+  - Reserves fixed transport and ~10% contingency first; tilts flexible spend moderately toward food/lodging without starving other categories.
+  - Outputs Tight / Balanced ⭐ / Upgraded scenarios with per-person totals and the top 2 cost levers.
 
-## 6. 完整规划
-用户：明年一月从重庆去成都五天，预算四人共 5000，帮我排完整路线。
-- 需要核实具体出发日期时询问；不可取得实时价时给有条件估算并说明风险。
-- 先研究，再按交通/开放/活动与预算编排；验证后输出完整路线。
+## 5. Multi-group itinerary with calendar traps & Plan B (`plan`)
+**User**: "Plan a 3-day relaxed trip for 4 people (1 senior who shouldn't walk too much, 1 museum lover, 2 shoppers) from Nov 28–30."
+- **Behavior**:
+  - Live-checks exact weekday closures (Nov 30 is Monday!), opening hours, and door-to-door transit.
+  - Clusters by neighborhood, designs a core shared anchor + 2-hour same-neighborhood split-and-rejoin window, adds 1-line rain Plan B and booking countdown, and appends the compact `Trip State` snapshot.
+
+## 6. Local revision + optional export (`revise` + `export`)
+**User**: "Swap Day 2 afternoon to a tea house, don't touch Day 3 (already booked), and export an `.ics` calendar for us."
+- **Behavior**:
+  - Keeps Day 3 locked items intact, checks only Day 2 adjacent transfers/hours/budget, shows a compact `Before → After` diff, and generates a clean `.ics` file marking any unverified items explicitly.

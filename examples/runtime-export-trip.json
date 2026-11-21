@@ -1,0 +1,54 @@
+{
+  "task": "export_html",
+  "export_kind": "trip",
+  "lang": "zh",
+  "title": "成都 2 日松弛游草案（示例数据）",
+  "summary": "美食 + 人文轻节奏｜仅示例格式，非实时查证结果",
+  "party": "2 人（成人）",
+  "base_area": "春熙路/太古里沿线（暂定）",
+  "timezone": "Asia/Shanghai",
+  "retrieved_at": "2026-11-21",
+  "booking_countdown": [
+    {
+      "lead_time": "提前 7 天",
+      "item": "示例博物馆预约门票",
+      "channel": "官方公众号放票（注意周一闭馆）",
+      "status": "unverified"
+    }
+  ],
+  "days": [
+    {
+      "date": "2026-11-28",
+      "title": "Day 1 · 抵达与老城茶馆",
+      "pace": "轻节奏",
+      "plan_b": "如遇降雨，下午直接改为同片区室内茶馆或美术馆，避免跨区折返。",
+      "stops": [
+        {
+          "id": "d1_s1",
+          "name": "入住酒店并放行李",
+          "start": "14:00",
+          "end": "14:45",
+          "transit": "高铁东站地铁 ≈35 分钟",
+          "verification_status": "estimate",
+          "notes": "到达日预留延误缓冲"
+        },
+        {
+          "id": "d1_s2",
+          "name": "人民公园喝茶漫步（示例）",
+          "start": "15:15",
+          "end": "17:30",
+          "address": "青羊区少城路",
+          "transit": "地铁 3 站 ≈20 分钟",
+          "cost": "≈¥50/人",
+          "verification_status": "verified",
+          "source": "synthetic-official-park-page",
+          "retrieved_at": "2026-11-21"
+        }
+      ]
+    }
+  ],
+  "unknowns": [
+    "实际高铁抵达车次待确认（影响 Day 1 第一站衔接）。",
+    "晚餐热门门店当日排队情况需临近出发复核。"
+  ]
+}

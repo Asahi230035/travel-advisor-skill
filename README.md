@@ -1,27 +1,26 @@
 # Travel Advisor
 
-An Agent Skill for researching, comparing, and planning travel with reliable sources and personalized recommendations.
+An evidence-first, real-time travel planning and decision Agent Skill — combining domain travel craft, strict freshness/authenticity verification, decision-ready output formats, and optional zero-setup Python utilities.
 
-[简体中文](README.zh-CN.md) · [Skill](SKILL.md) · [Examples](examples/agent-use-cases.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+[简体中文](README.zh-CN.md) · [Skill Entry](SKILL.md) · [Use Cases](examples/agent-use-cases.md) · [Architecture](docs/architecture.md) · [Changelog](CHANGELOG.md)
 
-## Features
+## What makes v2.0 different
 
-- **Travel discovery** — Find destinations, attractions, restaurants, and activities based on interests and constraints.
-- **Source verification** — Check travel tips and itineraries against relevant, up-to-date sources; identify conflicts and outdated claims.
-- **Option comparison** — Compare hotels, transport, and activities using equivalent dates, occupancy, departure times, transfer counts, baggage, benefits, refund and payment conditions, not just headline prices or ratings.
-- **Budget assistance** — Balance essential expenses, contingency, and personal priorities without overspending on one category.
-- **Itinerary planning** — When asked, the agent researches locations and real transit/opening constraints, then composes a practical schedule. No local route optimizer is required.
-- **Itinerary review** — Spot unrealistic connections, out-of-order stops, unverified cross-day transfers, missing reservations, budget gaps, and other constraints.
-- **Personal and group preferences** — Evaluate alternatives for individuals or groups, with explainable trade-offs.
-- **Focused revisions** — Change one part of a trip while keeping confirmed arrangements intact.
-
-You can ask for a single comparison or a complete itinerary. Travel Advisor selects the relevant steps based on your request and asks follow-up questions only when essential information is missing.
+- **Real-time freshness & authenticity first** — Never falls back to model memory for prices, taxes, exchange rates, opening hours, closures, timetables, or entry rules. Enforces temporal anchoring, local-language primary-source checks, full-page verification over search snippets, and `published_at` vs `retrieved_at` separation.
+- **Visible four-state provenance (`✅ / ≈ / ⚠️ / ❓`)** — Every consequential figure or operational claim shows whether it was live-verified in the current session, estimated, conflicting/stale, or still unverified — both in chat and in exported files.
+- **Genuine travel planning craft (progressive disclosure)** — Specialized domain playbooks loaded only on demand:
+  - *Itinerary & pacing*: neighborhood clustering, arrival/departure buffers, energy curves, weekday-closure & holiday trap checks, booking countdowns, and 1-line rain/queue Plan B.
+  - *Stays & transport*: hub-radius selection, hotel-switching friction, door-to-door rail vs air accounting, transit pass break-even math, recent negative-review screening, and hidden surcharge checks (city taxes, resort fees, baggage).
+  - *Budgets & trade-offs*: fixed + reserve + 3-tier flexible scenarios (`Tight / Balanced / Upgraded`), top-2 cost levers, flip conditions instead of false numeric scores, and group fairness.
+  - *Traveler profiles & cross-border*: kids, seniors/mobility, small-group split-and-rejoin windows, solo travel, and official visa/passport/payment/connectivity checks.
+- **Practical, uncluttered outputs & optional exports** — Scannable tables, multi-turn `Trip State` snapshots to prevent constraint drift, plus optional offline export to `.ics` calendars and mobile-friendly single-file HTML cards.
+- **Strict scope & user ownership** — Answers only what was asked, asks at most one high-impact question when needed, and protects `locked`/`booked` arrangements during local edits.
 
 ## Installation
 
-Copy this repository into your agent's skills directory. No API keys or third-party Python packages are required for the skill itself.
+Copy this repository into your agent's skills directory. **No API keys, environment variables, or third-party Python packages are required.**
 
-### Codex
+### Codex / Antigravity / Agent Skills hosts
 
 ```bash
 git clone https://github.com/Asahi230035/travel-advisor-skill.git
@@ -29,79 +28,60 @@ mkdir -p ~/.agents/skills/travel-advisor
 cp -R travel-advisor-skill/. ~/.agents/skills/travel-advisor/
 ```
 
-For project-local installation, place it in `.agents/skills/travel-advisor/` instead. Other Agent Skills-compatible hosts use their respective skill directories, such as `.claude/skills/travel-advisor/` for Claude Code.
+For workspace-local installation, place it in `.agents/skills/travel-advisor/`. Other compatible hosts use their own skill folder (e.g., `.claude/skills/travel-advisor/` for Claude Code).
 
-The entry point is [`SKILL.md`](SKILL.md). After installation, ask your agent a travel-related question as usual. Hosts that support explicit invocation may also accept `$travel-advisor`.
+The entry point is [`SKILL.md`](SKILL.md). Ask travel questions in natural language as usual.
 
 ## Usage examples
 
-**Compare accommodations**
+- **Compare hotels**: *"Compare 3 hotels near Shinjuku Station for Dec 4–6 (2 adults). Prioritize quiet rooms and airport access."*
+- **Verify claims**: *"Check whether this travel guide's opening hours and Monday schedule are still accurate."*
+- **Transit pass math**: *"We're visiting Tokyo, Kyoto, and Osaka in 6 days — is a 7-day JR Pass worth buying now?"*
+- **Balance a budget**: *"4 people, 3 days in Chengdu, total budget ¥8,000. Food and decent lodging matter most."*
+- **Audit / revise locally**: *"Check if Day 2 is too rushed and swap the afternoon to a tea house. Don't touch Day 3 (already booked)."*
+- **Plan & export**: *"Plan a 3-day relaxed trip for 4 people including a senior, then export an `.ics` calendar and an offline HTML sheet."*
 
-> Compare three hotels near Shinjuku Station for our dates. Focus on transit convenience, room size, and cancellation terms.
-
-**Verify a travel post**
-
-> Check whether the opening-hours claim in this travel article is accurate and current.
-
-**Balance a budget**
-
-> We have ¥5,000 for four people in Chengdu. Food and accommodation matter most, but keep the overall trip balanced.
-
-**Review a plan**
-
-> Check day two of my itinerary for unrealistic travel times. Do not change the other days.
-
-**Plan a trip**
-
-> Help us plan five relaxed days in Chengdu with food, local culture, and a few anime-related stops.
-
-More examples: [Agent use cases](examples/agent-use-cases.md).
-
-## How it works
-
-1. **Understand the task.** Identify the requested scope, known constraints, preferences, and confirmed decisions.
-2. **Clarify selectively.** Ask about missing details only when they materially affect the result.
-3. **Gather evidence.** Use the host agent's available search, browsing, maps, and other tools as appropriate.
-4. **Compare and validate.** Align source conditions, assess trade-offs, and check hard constraints.
-5. **Present actionable results.** Explain recommendations, uncertainties, and next decisions at the level of detail requested.
-6. **Update on request.** Recalculate only the affected parts when the user changes a decision.
-
-Travel Advisor distinguishes verified facts, estimates, subjective opinions, and unknowns. Current prices and transport details depend on accessible sources and host tools. **Itinerary creation is performed by the host agent using available research**, not by an offline itinerary algorithm.
+See [examples/agent-use-cases.md](examples/agent-use-cases.md) for detailed walkthroughs.
 
 ## Repository structure
 
 ```text
 travel-advisor-skill/
-├── SKILL.md              # Agent instructions and workflow
-├── references/           # Task-specific policies
-├── travel_core/          # Optional deterministic Python helpers
-├── scripts/              # Optional command-line entry point
-├── schemas/              # Structured data contracts
-├── examples/             # Sample requests and synthetic data
-├── evals/                # Agent evaluation scenarios
-├── tests/                # Automated regression tests
-└── docs/                 # Architecture and development notes
+├── SKILL.md                 # Lean entry point, real-time freshness rules & routing map
+├── references/              # On-demand core policies & domain expert playbooks (7 files)
+├── travel_core/             # Optional stdlib-only deterministic calculators, auditor & exporters
+├── scripts/travel.py        # Unified optional CLI (--stdin, --format json|md|ics|html, --lang)
+├── schemas/                 # Illustrative JSON contracts
+├── examples/                # Synthetic demos & natural-language walkthroughs
+├── evals/scenarios.md       # 24-scenario agent behavioral evaluation suite with rubrics
+├── tests/                   # Automated unit, security & repo-contract tests
+└── docs/                    # Architecture, design, usage & evaluation docs
 ```
 
-The Skill works through your agent's existing capabilities. The Python helpers are optional, use only the standard library and **do not generate itineraries or retrieve live data**. Planning follows [host-driven planning rules](references/itinerary-planning.md); runtime scripts can only check a supplied draft.
+**Important boundary:** Live research and itinerary composition are always performed by the host agent using its accessible tools. The optional Python CLI never accesses the network, never books anything, and **never generates itineraries offline**.
 
-## Development
+## Optional CLI & testing
 
-Run the automated tests:
+Run the full automated test suite:
 
 ```bash
-python -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
 
-Inspect the available offline helper operations:
+Try the unified offline CLI (synthetic fixtures only):
 
 ```bash
-python scripts/travel.py --capabilities
-python scripts/travel.py examples/runtime-compare.json --format md
+python3 scripts/travel.py --capabilities
+python3 scripts/travel.py examples/runtime-compare.json --format md
+python3 scripts/travel.py examples/runtime-verify.json --format md
+python3 scripts/travel.py examples/runtime-budget.json --format md
+python3 scripts/travel.py examples/runtime-pass-check.json --format md
+python3 scripts/travel.py examples/runtime-export-trip.json --format html --out /tmp/trip.html
+python3 scripts/travel.py examples/runtime-export-trip.json --task export_ics --format ics --out /tmp/trip.ics
 ```
 
-Example inputs and outputs are synthetic test fixtures, not live prices or bookings. See [evaluation guidance](docs/evaluation.md) and [contribution guidelines](CONTRIBUTING.md).
+See [docs/evaluation.md](docs/evaluation.md) and [docs/usage.md](docs/usage.md).
 
 ## License
 
-Released under the [MIT License](LICENSE). For security-related reports, see [SECURITY.md](SECURITY.md).
+Released under the [MIT License](LICENSE). Security disclosures: [SECURITY.md](SECURITY.md).

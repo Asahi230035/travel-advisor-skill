@@ -1,0 +1,21 @@
+{
+  "task": "budget",
+  "currency": "CNY",
+  "total_budget": 8000,
+  "travelers": 4,
+  "days": 3,
+  "fixed_costs": {
+    "intercity_rail": 2400
+  },
+  "reserve_ratio": 0.1,
+  "baseline_shares": {
+    "accommodation": 0.45,
+    "food": 0.30,
+    "local_transit": 0.12,
+    "activities": 0.13
+  },
+  "priorities": {
+    "food": "moderate",
+    "accommodation": "slight"
+  }
+}

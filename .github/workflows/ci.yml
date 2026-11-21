@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run automated unit and contract tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Smoke-test unified CLI
+        run: |
+          python scripts/travel.py --capabilities > /dev/null
+          python scripts/travel.py examples/runtime-compare.json --format md > /dev/null
+          python scripts/travel.py examples/runtime-verify.json --format md > /dev/null
+          python scripts/travel.py examples/runtime-budget.json --format md > /dev/null
+          python scripts/travel.py examples/runtime-pass-check.json --format md > /dev/null
+          python scripts/travel.py examples/runtime-export-trip.json --task export_ics --format ics > /dev/null
+          python scripts/travel.py examples/runtime-export-trip.json --format html > /dev/null

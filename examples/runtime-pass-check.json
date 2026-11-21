@@ -1,0 +1,36 @@
+{
+  "task": "pass_check",
+  "pass_name": "Example 5-Day Regional Rail Pass (Synthetic)",
+  "currency": "JPY",
+  "pass_price": 26000,
+  "travelers": 2,
+  "legs": [
+    {
+      "name": "Airport Express -> City Center",
+      "single_fare": 3400,
+      "covered": true,
+      "pass_surcharge": 0,
+      "verified": true
+    },
+    {
+      "name": "City A -> City B (High-Speed Rail)",
+      "single_fare": 14170,
+      "covered": true,
+      "pass_surcharge": 4960,
+      "verified": true
+    },
+    {
+      "name": "City B -> Day-trip Town (Round Trip)",
+      "single_fare": 4200,
+      "covered": true,
+      "pass_surcharge": 0,
+      "verified": true
+    },
+    {
+      "name": "Private Mountain Railway (Not Covered)",
+      "single_fare": 2400,
+      "covered": false,
+      "verified": true
+    }
+  ]
+}
